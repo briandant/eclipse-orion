@@ -5,15 +5,15 @@ MAINTAINER Brian Dant <brian@appsembler.com>
 # FROM jolokia/java-jolokia:6
 
 RUN apt-get update 
-RUN apt-get install -y build-essential g++ curl libssl-dev apache2-utils git libxml2-dev sshfs
+RUN apt-get install -y build-essential g++ curl libssl-dev apache2-utils git libxml2-dev sshfs maven
 
 # Make sh recognize scripts
 RUN rm /bin/sh && ln -snf /bin/bash /bin/sh
 
 # ------------------------------------------------------------------------------
 # Install Node.js
-RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
-RUN apt-get install -y nodejs
+# RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
+# RUN apt-get install -y nodejs
 
 # ------------------------------------------------------------------------------
 # Install Orion 
@@ -26,17 +26,25 @@ WORKDIR /orion
 
 # RUN curl -o /tmp/orion.zip http://mirrors.ibiblio.org/eclipse/orion/drops/R-8.0-201502161823/eclipse-orion-8.0-linux.gtk.x86_64.zip && \
 
-RUN curl -L https://github.com/eclipse/orion.client/archive/prod-20170628-1941.tar.gz | tar xz
-WORKDIR /orion/orion.client-prod-20170628-1941/modules/orionode/
-RUN npm install --verbose
+# RUN curl -L https://github.com/eclipse/orion.client/archive/prod-20170628-1941.tar.gz | tar xz
+RUN git clone https://github.com/eclipse/orion.client.git
+RUN git clone https://github.com/eclipse/orion.server.git
+WORKDIR /orion/orion.server 
+RUN mvn clean install -P platform-kepler,local-build -Dorion.client.build.skip -DskipTests
+
+# WORKDIR /orion/orion.client-prod-20170628-1941/
 
 # ------------------------------------------------------------------------------
 # Add config
 # VOLUME /orion
-ADD orion.conf /orion/orion.client-prod-20170628-1941/modules/orionode/
+# ADD orion.conf /orion/orion.client-prod-20170628-1941/modules/orionode/
+
+
+# RUN npm install --verbose
+
 
 # Add supervisord conf
-ADD conf/orion.conf /etc/supervisor/conf.d/
+ADD conf/orion-maven.conf /etc/supervisor/conf.d/
 
 # ------------------------------------------------------------------------------
 # Clean up APT when done.
@@ -44,7 +52,7 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # ------------------------------------------------------------------------------
 # Expose ports.
-EXPOSE 8081
+EXPOSE 8080
 
 # ------------------------------------------------------------------------------
 # Start supervisor, define default command.
